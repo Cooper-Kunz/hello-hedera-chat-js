@@ -7,11 +7,11 @@ async function main() {
   console.log("ConsensusTopicCreateTransaction()");
 
   const tx = await new ConsensusTopicCreateTransaction().execute(HederaClient);
-  console.log("tx:", tx);
+  //console.log("tx:", tx);
 
   const receipt = await tx.getReceipt(HederaClient);
   const newTopicId = receipt.getTopicId();
-  console.log("new HCS topic ID:", newTopicId);
+  console.log("new HCS topic ID:", newTopicId.toString());
 }
 
 main();
