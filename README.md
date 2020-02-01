@@ -16,11 +16,11 @@ A tutorial to follow along and build this project from scratch is coming soon!
 This demo assumes that you have an account on the Hedera Testnet. For example:
 
 ```
-account: 0.0.123456789
+ACCOUNT_ID: 0.0.123456789
 
-publicKey: 302a300506032b657003210013d392c9ebcf942a3c4ca165e6ee7721df293960001dfe0c347ea8542ef6c4a4
+PUBLIC_KEY: 302a300506032b657003210013d392c9ebcf942a3c4ca165e6ee7721df293960001dfe0c347ea8542ef6c4a4
 
-privateKey: 302e020100300506032b657004220420f4361ec73dc43e568f1620a7b7ecb7330790b8a1c7620f1ce353aa1de4f0eaa6
+PRIVATE_KEY: 302e020100300506032b657004220420f4361ec73dc43e568f1620a7b7ecb7330790b8a1c7620f1ce353aa1de4f0eaa6
 ```
 
 If you don't have one yet, you can signup at [portal.hedera.com](https://portal.hedera.com/).
