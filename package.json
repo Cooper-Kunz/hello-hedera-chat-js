@@ -14,7 +14,6 @@
     "express": "^4.17.1",
     "open": "^7.0.0",
     "socket.io": "^2.3.0",
-    "text-encoder": "0.0.4",
     "text-encoding": "^0.7.0"
   },
   "repository": {
