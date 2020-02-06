@@ -1,110 +1,160 @@
+/* configure access to our .env */
+require("dotenv").config();
+
+/* include express.js & socket.io */
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
+
+/* include other packages */
+const inquirer = require("inquirer");
 const open = require("open");
 const TextDecoder = require("text-encoding").TextDecoder;
-const HederaClient = require("./hedera-client");
-const UInt8ToString = require("./utils.js").UInt8ToString;
-const secondsToDate = require("./utils.js").secondsToDate;
+
+/* hedera.js */
 const {
+  Client,
   ConsensusSubmitMessageTransaction,
   ConsensusTopicId,
+  ConsensusTopicCreateTransaction,
   MirrorClient,
   MirrorConsensusTopicQuery
 } = require("@hashgraph/sdk");
-const topicId = ConsensusTopicId.fromString("0.0.156824");
-const mirrorNodeAddress = new MirrorClient("api.testnet.kabuto.sh:50211");
 
-if (process.argv.length <= 2) {
-  // do nothing
-  //console.log("normal args");
-} else {
-  for (var i = 2; i < process.argv.length; i++) {
-    // process the rest of our args
-    var arg = process.argv[i];
-    if (i === 2) {
-      // pass in how we should manage errors
-      if (arg === "--debug") {
-        // print out debugging info from our logger
-        console.log(arg);
-      } else if (arg === "--minimal") {
-        // print out only the "minimal" output
-        console.log(arg);
-      }
-      else { 
-        console.log(
-          `\noops, arg '${arg}' didn't appear to match our schema.\nwe'll try to ignore this, but maybe you'd like to try again?\n`
+/* utilities */
+const questions = require("./utils.js").initQuestions;
+const UInt8ToString = require("./utils.js").UInt8ToString;
+const secondsToDate = require("./utils.js").secondsToDate;
+const log = require("./utils.js").handleLog;
+const sleep = require("./utils.js").sleep;
+
+/* init variables */
+const defaultTopicId = ConsensusTopicId.fromString("0.0.156824");
+const mirrorNodeAddress = new MirrorClient("api.testnet.kabuto.sh:50211");
+const HederaClient = Client.forTestnet();
+const specialChar = "&";
+var topicId = "";
+var logStatus = "Default";
+
+/* configure our env based on prompted input */
+async function init() {
+  inquirer.prompt(questions).then(async function(answers) {
+    try {
+      logStatus = answers.status;
+      /* configure account */
+      if (answers.account === "" || answers.key === "") {
+        log("init()", "using default .env config", logStatus);
+        HederaClient.setOperator(
+          process.env.ACCOUNT_ID,
+          process.env.PRIVATE_KEY
         );
+      } else {
+        HederaClient.setOperator(answers.account, answers.key);
       }
-    } else {
-      console.log(
-        `\noops, arg '${arg}' didn't appear to match our schema.\nwe'll ignore this, but maybe you'd like to try again?\n`
-      );
+      /* configure topic */
+      if (answers.topic.includes("create")) {
+        log("init()", "creating new topic", logStatus);
+        topicId = await createNewTopic();
+      } else {
+        log("init()", "using default topic", logStatus);
+        topicId = defaultTopicId;
+      }
+      /* run & serve the express app */
+      runChat();
+    } catch (error) {
+      log("ERROR: init()", error, logStatus);
+      process.exit(1);
     }
-  }
+  });
 }
 
-init(); // After we've processed our args, lets setup the app!
-
-function init() {
-  //console.log(environmentLocation);
-
-  app.use(express.static("public")); // Render our /public folder
-
-  /* define port for express.js to serve the app at */
+function runChat() {
+  app.use(express.static("public"));
   http.listen(0, function() {
-    //console.log("listening on ", http.address().port);
     const randomInstancePort = http.address().port;
-    open("http://localhost:" + randomInstancePort, { app: "firefox" }); // may crash/error if they don't have firefox
+    open("http://localhost:" + randomInstancePort, { app: "firefox" }); // to do - add fallback browsers
   });
-
-  /* called whenever a user connects to the client */
+  subscribeToMirror();
   io.on("connection", function(client) {
-    //console.log("connection: ", client.id);
-    io.emit("connect message", client.id + "&" + topicId);
-    listenForMessages();
-
+    io.emit("connect message", client.id + specialChar + topicId);
     client.on("chat message", function(msg) {
-      const formattedMessage = client.id + "&" + msg; // use a special character to break our messages
+      const formattedMessage = client.id + specialChar + msg;
       sendHCSMessage(formattedMessage);
     });
-
     client.on("disconnect", function() {
-      //console.log("disconnect");
       io.emit("disconnect message", client.id);
     });
   });
 }
 
-// TO DO - error handling / response management for subscribing to a Mirror Node API
-// TO DO - compare results from multiple mirror node APIs
-/* listen to our mirror node API */
-function listenForMessages() {
-  console.log("MirrorConsensusTopicQuery()");
-  // Currently, the Kabuto API will return _all_ messages that have happened in this
-  // topic upon a new subscription event, meaning there could be a looot of data here
-  new MirrorConsensusTopicQuery()
-    .setTopicId(topicId)
-    .subscribe(mirrorNodeAddress, res => {
-      console.log("Pub-sub response from MirrorConsensusTopicQuery()");
-      //console.log("mirror node res:", res);
-      const message = new TextDecoder("utf-8").decode(res["message"]);
-      var runningHash = UInt8ToString(res["runningHash"]);
-      var timestamp = secondsToDate(res["consensusTimestamp"]);
-      io.emit(
-        "chat message",
-        message + "&" + res.sequenceNumber + "&" + runningHash + "&" + timestamp
-      );
-    });
-  return;
+init(); // process arguments & handoff to runChat()
+
+/* helper hedera functions are below */
+/* have feedback, questions, etc.? please feel free to file an issue! */
+function sendHCSMessage(msg) {
+  try {
+    new ConsensusSubmitMessageTransaction()
+      .setTopicId(topicId)
+      .setMessage(msg)
+      .execute(HederaClient);
+    log("ConsensusSubmitMessageTransaction()", msg, logStatus);
+  } catch (error) {
+    log("ERROR: ConsensusSubmitMessageTransaction()", error, logStatus);
+    process.exit(1);
+  }
 }
 
-// TO DO - error handling / response management for submitting a new HCS message
-function sendHCSMessage(msg) {
-  console.log("ConsensusSubmitMessageTransaction()");
-  new ConsensusSubmitMessageTransaction()
-    .setTopicId(topicId)
-    .setMessage(msg)
-    .execute(HederaClient);
+function subscribeToMirror() {
+  try {
+    new MirrorConsensusTopicQuery()
+      .setTopicId(topicId)
+      .subscribe(mirrorNodeAddress, res => {
+        log("Response from MirrorConsensusTopicQuery()", res, logStatus);
+        const message = new TextDecoder("utf-8").decode(res["message"]);
+        var runningHash = UInt8ToString(res["runningHash"]);
+        var timestamp = secondsToDate(res["consensusTimestamp"]);
+        io.emit(
+          "chat message",
+          message +
+            specialChar +
+            res.sequenceNumber +
+            specialChar +
+            runningHash +
+            specialChar +
+            timestamp
+        );
+      });
+    log("MirrorConsensusTopicQuery()", topicId.toString(), logStatus);
+  } catch (error) {
+    log("ERROR: MirrorConsensusTopicQuery()", error, logStatus);
+    process.exit(1);
+  }
+}
+
+async function createNewTopic() {
+  try {
+    const tx = await new ConsensusTopicCreateTransaction().execute(
+      HederaClient
+    );
+    log(
+      "ConsensusTopicCreateTransaction()",
+      `submitted tx ${tx} .. waiting 3 seconds for receipt`,
+      logStatus
+    );
+    await sleep(3000); // need to wait until this has persisted to a mirror
+    const receipt = await tx.getReceipt(HederaClient);
+    const newTopicId = receipt.getTopicId();
+    log(
+      "ConsensusTopicCreateTransaction()",
+      `created new topic ${newTopicId} .. waiting 9 seconds for it to get to our Mirror Node`,
+      logStatus
+    );
+    await sleep(9000); // need to wait until this has persisted to a mirror
+    log("ConsensusTopicCreateTransaction()", newTopicId.toString(), logStatus);
+    return newTopicId;
+  } catch (error) {
+    log("ERROR: ConsensusTopicCreateTransaction()", error, logStatus);
+    process.exit(1);
+  }
 }
