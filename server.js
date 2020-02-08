@@ -34,7 +34,8 @@ const mirrorNodeAddress = new MirrorClient(
   "hcs.testnet.mirrornode.hedera.com:5600"
 );
 const defaultTopicId = ConsensusTopicId.fromString("0.0.156824");
-const specialChar = "&";
+const specialChar = "ℏ";
+var operatorAccount = "";
 var HederaClient = Client.forTestnet();
 var topicId = "";
 var logStatus = "Default";
@@ -63,13 +64,17 @@ function runChat() {
   });
   subscribeToMirror();
   io.on("connection", function(client) {
-    io.emit("connect message", client.id + specialChar + topicId);
+    io.emit(
+      "connect message",
+      operatorAccount + specialChar + client.id + specialChar + topicId
+    );
     client.on("chat message", function(msg) {
-      const formattedMessage = client.id + specialChar + msg;
+      const formattedMessage =
+        operatorAccount + specialChar + client.id + specialChar + msg;
       sendHCSMessage(formattedMessage);
     });
     client.on("disconnect", function() {
-      io.emit("disconnect message", client.id);
+      io.emit("disconnect message", operatorAccount + specialChar + client.id);
     });
   });
 }
@@ -146,10 +151,12 @@ function configureAccount(account, key) {
     // we should try and fallback to the .env configuration
     if (account === "" || key === "") {
       log("init()", "using default .env config", logStatus);
+      operatorAccount = process.env.ACCOUNT_ID;
       HederaClient.setOperator(process.env.ACCOUNT_ID, process.env.PRIVATE_KEY);
     }
     // Otherwise, let's use the initalization parameters
     else {
+      operatorAccount = account;
       HederaClient.setOperator(account, key);
     }
   } catch (error) {
