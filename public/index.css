@@ -93,6 +93,7 @@ form {
 
 form input {
   border: 0;
+  outline: none;
   padding: 20px;
   width: calc(94% - 120px);
 }
@@ -129,6 +130,7 @@ form button {
   font-size: 12px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 .meta .details {
@@ -221,4 +223,48 @@ form button {
   flex-direction: row;
   justify-content: space-between;
   font-size: 14px;
+}
+
+/* reorganize our chat layout on smaller width screens */
+@media screen and (max-width: 1024px) {
+  .chat {
+    background: linear-gradient(180deg, #c5c5d4 0%, #b3b3c4 100%);
+    flex-direction: column;
+    justify-content: start;
+  }
+
+  .main-panel {
+    height: calc(
+      100% - 200px
+    ); /* offset 100px for each nav & form input field */
+  }
+
+  .side-panel {
+    height: 100px;
+    padding: 2%;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .side-panel #title {
+    margin: 18px 0;
+  }
+
+  .side-panel ul {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  #messages {
+    height: calc(100% - 80px);
+  }
+
+  form {
+    border-top: none;
+    bottom: 4%;
+    left: 2%;
+    width: 96%;
+  }
 }
