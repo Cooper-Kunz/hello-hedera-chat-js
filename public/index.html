@@ -4,76 +4,110 @@
     <title>Hello Hedera HCS chat!</title>
     <link rel="stylesheet" href="/index.css"></link>
   </head>
-  <!-- Include the socket.io library & jQuery -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
   <script>
     $(function() {
-    // expose our socket client
-    var socket = io();
-
-    // handle and submit new chat messages to our server
-    $("form").submit(function(e) {
-      e.preventDefault(); // prevents page reloading
-      socket.emit("chat message", $("#m").val());
-      $("#m").val("");
-      return false;
-    });
-
-    // listen for new chat messages from our server
-    // these are all sent over the Hedera consensus service!
-    socket.on("chat message", function(msg) {
-      console.log(msg);
+      // expose our socket client
+      var socket = io();
       
-      // Split this message by a specific, special character
-      var splitMsg = msg.split("&");
+      // handle and submit new chat messages to our server
+      $("form").submit(function(e) {
+        e.preventDefault(); // prevents page reloading
+        var msg = $("#m").val();
+        if(msg.includes("ℏ")) { 
+          alert("sorry, you're unable to send messages with ℏ in them!");
+        }
+        else { 
+          socket.emit("chat message", $("#m").val());
+        }
+        $("#m").val("");
+        return false;
+      });
 
-      // Grab the specifically formatted message string 
-      var clientId = "💻 client:  " +splitMsg[0].slice(0,6) + "... ";
-      var msg = "🗣 : "+splitMsg[1];
-      var sequenceNumber = "🔢 sequenceNumber: "+splitMsg[2] + "   ";
-      var trimmedHash = "🔗 runningHash: "+splitMsg[3].slice(0,6) + "...    ";
-      var consensusTimestamp = "⏰ " + splitMsg[4].slice(0,25);
+      // listen for new chat messages from our server
+      // these are all sent over the Hedera consensus service!
+      socket.on("chat message", function(msg) {
 
-      // Append the split message to our HTML in pieces
-      $("#messages").append(
-        $("<li>").addClass("new-message").append(
-          $("<p>").text(clientId+ "   " + msg).addClass("message")).append( // splitMsg[0] = clientID, splitMsg[1] = msg
-            $("<p>").text(sequenceNumber + trimmedHash + consensusTimestamp).addClass("meta"))) // splitMsg[2] = sequence #, splitMsg[3] = runningHash
+        // Split this message by a specific, special character
+        var splitMsg = msg.split("ℏ");
 
-      // Update the current sequence #
-      $("#sequence-number").text("🔢 Current sequence #" + splitMsg[2] + "  ");
+        // Grab the specifically formatted message string
+        var operatorId = splitMsg[0]; 
+        var clientId = splitMsg[1].slice(0,6) + "..";
+        var msg = splitMsg[2];
+        var sequenceNumber = splitMsg[3];
+        var trimmedHash = "runningHash: "+splitMsg[4].slice(0,6) + "..";
+        var trimmedTimestamp = splitMsg[5].slice(0,25);
+      
+        // Grab & trim our topic ID
+        var topicId = document.getElementById("topic-id");
+        var idString = topicId.innerHTML.substring(7, topicId.length);
+      
+        // Append the split message to our HTML in pieces
+        $("#messages").append(
+          $("<li>").addClass("new-message").append(
+            $("<div>").addClass("message").append( 
+              $("<p>").text(operatorId+"@"+clientId).addClass("client")).append(
+                $("<div>").addClass("message-body").append( 
+                  $("<div>").text(msg).addClass("message-content")).append(
+                  $("<div>").text(trimmedTimestamp).addClass("message-timestamp")))).append(
+            $("<div>").addClass("meta").append( 
+              $("<p>").text("sequence: "+ sequenceNumber).addClass("details")).append(
+              $("<p>").text(trimmedHash).addClass("details")).append(
+              $("<a>").text("view transaction").addClass("details")
+                .attr("target", "_blank")
+                .attr("href", `https://explorer.kabuto.sh/testnet/topic/${idString}/message/${sequenceNumber}`))));
+      
+        // Update the current sequence #
+        $("#sequence-number").text("last message sequence number: " + sequenceNumber + "  ");
+      });
+
+      // listen for new client connections from our server
+      socket.on("connect message", function(msg) {
+        /* send new connection message */
+        var splitMsg = msg.split("ℏ");
+        $("#messages").append(
+          $("<li>").text('new connection: ' + splitMsg[0] + "@" + splitMsg[1]).addClass("new-connection"));
+        /* update this clients topic id */
+        var topicId = document.getElementById("topic-id");
+        topicId.innerHTML = "Topic: " + splitMsg[2];
+      });
+      
+      // listen for client disconnections from our server
+      socket.on("disconnect message", function(msg) {
+        /* send new disconnection message */
+        var splitMsg = msg.split("ℏ");
+        $("#messages").append(
+          $("<li>").text(splitMsg[0] + "@" + splitMsg[1] + ' has disconnected').addClass("disconnection"));
+      });
     });
-
-    // listen for new client connections from our server
-    socket.on("connect message", function(msg) {
-      console.log(msg);
-      var splitMsg = msg.split("&");
-      $("#messages").append($("<li>").text('🔌 new connection: ' + splitMsg[0]).addClass("new-connection"));
-      var topicId = document.getElementById("topic-id");
-      topicId.innerHTML = "📬 HCS Topic: " + splitMsg[1];
-    });
-
-    // listen for client disconnections from our server
-    socket.on("disconnect message", function(msg) {
-      console.log(msg);
-      $("#messages").append($("<li>").text(msg + ' has disconnected').addClass("disconnection"));
-    });
-  });
-</script>
+  </script>
   <body>
-    <div class="header">
-      <h1 id="title">Hello Hedera HCS Chat ⚡️</h1>
-      <div class="chat-details">
-        <h1 id="running-hash"></h1>
-        <h1 id="sequence-number"></h1>
-        <h1 id="topic-id"></h1>
+    <div class="chat">
+      <div class="side-panel">
+        <h1 id="title">Hedera Chat Demo ⚡️</h1>
+        <ul>
+          <li><a class="panel-link" href="https://docs.hedera.com/"><img />Hedera JS Docs</a></li>
+          <li><a class="panel-link"href="https://github.com/hashgraph/"><img />GitHub</a></li>
+          <li><a class="panel-link" href="https://docs.hedera.com/"><img />Chat tutorial</a></li>
+        </ul>
+      </div>
+      <div class="main-panel">
+        <div class="content">
+          <div class="header">
+            <div class="chat-details">
+              <h3 id="topic-id"> </h3>
+              <h4 id="sequence-number"> </h4>
+            </div>
+          </div>
+          <ul id="messages">
+          </ul>
+          <form id="form" action="">
+            <input id="m" autocomplete="off" placeholder="Type a message here"/><button>Send</button>
+          </form>
+        </div>
       </div>
     </div>
-    <ul id="messages">
-    </ul>
-    <form id="form" action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
   </body>
 </html>
