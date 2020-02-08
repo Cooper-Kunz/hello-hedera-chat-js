@@ -30,8 +30,10 @@ const log = require("./utils.js").handleLog;
 const sleep = require("./utils.js").sleep;
 
 /* init variables */
+const mirrorNodeAddress = new MirrorClient(
+  "hcs.testnet.mirrornode.hedera.com:5600"
+);
 const defaultTopicId = ConsensusTopicId.fromString("0.0.156824");
-const mirrorNodeAddress = new MirrorClient("api.testnet.kabuto.sh:50211");
 const specialChar = "&";
 var HederaClient = Client.forTestnet();
 var topicId = "";
