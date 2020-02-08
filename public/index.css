@@ -62,7 +62,7 @@ body {
 
 .header {
   align-items: center;
-  border-bottom: 1px solid grey;
+  background: #fafbff;
   display: flex;
   height: 80px;
   padding: 20px;
@@ -132,25 +132,84 @@ form button {
 }
 
 .meta .details {
-  color: grey;
+  color: rgba(112, 124, 151, 0.7);
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 .message {
+  align-items: center;
   display: flex;
   flex-direction: row;
+  justify-content: start;
+}
+
+.message .client {
+  color: rgba(112, 124, 151, 0.7);
+  font-size: 12px;
+  margin: -24px 12px 0 0;
+}
+
+.message-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-body .message-content {
+  border: 1px solid rgba(112, 124, 151, 0.25);
+  border-radius: 24px;
+  box-sizing: border-box;
+  box-shadow: 15px 15px 35px rgba(112, 124, 151, 0.05),
+    10px 10px 25px rgba(112, 124, 151, 0.05);
+  color: #707c97;
+  padding: 10px;
+  font-size: 14px;
+  min-width: 300px;
+  max-width: 600px;
+  word-wrap: break-word;
+}
+
+.message-body .message-timestamp {
+  color: rgba(112, 124, 151, 0.7);
+  font-size: 12px;
+  text-align: right;
+  margin-top: 8px;
 }
 
 .new-connection,
 .disconnection {
-  color: grey;
+  color: rgba(112, 124, 151, 0.7);
   font-size: 14px;
   font-weight: bold;
   text-align: center;
   text-decoration: underline;
   justify-content: center;
+}
+
+.new-connection:before,
+.new-connection:after,
+.disconnection:before,
+.disconnection:after {
+  background-color: rgba(112, 124, 151, 0.7);
+  content: "";
+  display: inline-block;
+  height: 1px;
+  position: relative;
+  vertical-align: middle;
+  width: 30%;
+}
+
+.new-connection:before,
+.disconnection:before {
+  right: 0.5em;
+  margin-left: -50%;
+}
+
+.new-connection:after,
+.disconnection:after {
+  left: 0.5em;
+  margin-right: -50%;
 }
 
 .new-connection #text {
