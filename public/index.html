@@ -4,68 +4,73 @@
     <title>Hello Hedera HCS chat!</title>
     <link rel="stylesheet" href="/index.css"></link>
   </head>
-  <!-- Include the socket.io library & jQuery -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
   <script>
     $(function() {
-    // expose our socket client
-    var socket = io();
+      // expose our socket client
+      var socket = io();
+      
+      // handle and submit new chat messages to our server
+      $("form").submit(function(e) {
+        e.preventDefault(); // prevents page reloading
+        socket.emit("chat message", $("#m").val());
+        $("#m").val("");
+        return false;
+      });
 
-    // handle and submit new chat messages to our server
-    $("form").submit(function(e) {
-      e.preventDefault(); // prevents page reloading
-      socket.emit("chat message", $("#m").val());
-      $("#m").val("");
-      return false;
+      // listen for new chat messages from our server
+      // these are all sent over the Hedera consensus service!
+      socket.on("chat message", function(msg) {
+
+        // Split this message by a specific, special character
+        var splitMsg = msg.split("&");
+
+        // Grab the specifically formatted message string 
+        var clientId = splitMsg[0].slice(0,9);
+        var msg = splitMsg[1];
+        var sequenceNumber = splitMsg[2];
+        var trimmedHash = "runningHash: "+splitMsg[3].slice(0,6) + "..";
+        var trimmedTimestamp = splitMsg[4].slice(0,25);
+      
+        // Grab & trim our topic ID
+        var topicId = document.getElementById("topic-id");
+        var idString = topicId.innerHTML.substring(7, topicId.length);
+      
+        // Append the split message to our HTML in pieces
+        $("#messages").append(
+          $("<li>").addClass("new-message").append(
+            $("<div>").addClass("message").append( 
+              $("<p>").text(clientId).addClass("client")).append(
+                $("<div>").addClass("message-body").append( 
+                  $("<div>").text(msg).addClass("message-content")).append(
+                  $("<div>").text(trimmedTimestamp).addClass("message-timestamp")))).append(
+            $("<div>").addClass("meta").append( 
+              $("<p>").text("sequence: "+ sequenceNumber).addClass("details")).append(
+              $("<p>").text(trimmedHash).addClass("details")).append(
+              $("<a>").text("view transaction").addClass("details")
+                .attr("target", "_blank")
+                .attr("href", `https://explorer.kabuto.sh/testnet/topic/${idString}/message/${sequenceNumber}`))));
+      
+        // Update the current sequence #
+        $("#sequence-number").text("last message sequence number: " + splitMsg[2] + "  ");
+      });
+
+      // listen for new client connections from our server
+      socket.on("connect message", function(msg) {
+        var splitMsg = msg.split("&");
+        $("#messages").append($("<li>").text('new connection: ' + splitMsg[0]).addClass("new-connection"));
+        var topicId = document.getElementById("topic-id");
+        topicId.innerHTML = "Topic: " + splitMsg[1];
+      });
+      
+      // listen for client disconnections from our server
+      socket.on("disconnect message", function(msg) {
+        console.log(msg);
+        $("#messages").append($("<li>").text(msg + ' has disconnected').addClass("disconnection"));
+      });
     });
-
-    // listen for new chat messages from our server
-    // these are all sent over the Hedera consensus service!
-    socket.on("chat message", function(msg) {
-
-      // Split this message by a specific, special character
-      var splitMsg = msg.split("&");
-
-      // Grab the specifically formatted message string 
-      var clientId = splitMsg[0].slice(0,9);
-      var msg = splitMsg[1];
-      var sequenceNumber = splitMsg[2];
-      var trimmedHash = "runningHash: "+splitMsg[3].slice(0,4) + "..";
-      var trimmedTimestamp = splitMsg[4].slice(0,25);
-
-      // Append the split message to our HTML in pieces
-      $("#messages").append(
-        $("<li>").addClass("new-message").append(
-          $("<div>").addClass("message").append( 
-            $("<p>").text(clientId).addClass("client")).append(
-              $("<div>").addClass("message-body").append( 
-                $("<div>").text(msg).addClass("message-content")).append(
-                $("<div>").text(trimmedTimestamp).addClass("message-timestamp")))).append(
-          $("<div>").addClass("meta").append( 
-            $("<p>").text("sequence: "+ sequenceNumber).addClass("details")).append(
-            $("<p>").text(trimmedHash).addClass("details"))))
-
-      // Update the current sequence #
-      $("#sequence-number").text("last message sequence number: " + splitMsg[2] + "  ");
-    });
-
-    // listen for new client connections from our server
-    socket.on("connect message", function(msg) {
-      console.log(msg);
-      var splitMsg = msg.split("&");
-      $("#messages").append($("<li>").text('new connection: ' + splitMsg[0]).addClass("new-connection"));
-      var topicId = document.getElementById("topic-id");
-      topicId.innerHTML = "Topic: " + splitMsg[1];
-    });
-
-    // listen for client disconnections from our server
-    socket.on("disconnect message", function(msg) {
-      console.log(msg);
-      $("#messages").append($("<li>").text(msg + ' has disconnected').addClass("disconnection"));
-    });
-  });
-</script>
+  </script>
   <body>
     <div class="chat">
       <div class="side-panel">
