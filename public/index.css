@@ -8,9 +8,61 @@ body {
   font: 13px Helvetica, Arial;
 }
 
+.chat {
+  background: grey;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+}
+
+.side-panel {
+  background: #ffffff;
+  box-shadow: 23.8596px 5.61404px 50px rgba(0, 0, 0, 0.02),
+    35.0877px 0px 70px rgba(86, 128, 248, 0.05),
+    14.0351px 0px 25px rgba(86, 128, 248, 0.03);
+  height: 100%;
+  left: 0px;
+  top: 0px;
+  width: 300px;
+}
+
+.side-panel ul {
+  margin: 12px 0;
+}
+
+.side-panel ul li {
+  list-style: none;
+  text-align: right;
+  padding: 12px 36px 12px 12px;
+}
+
+.panel-link {
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.main-panel {
+  background: linear-gradient(180deg, #c5c5d4 0%, #b3b3c4 100%);
+  padding: 2%;
+  width: 100%;
+}
+
+.content {
+  background: #ffffff;
+  height: 100%;
+}
+
+.side-panel #title {
+  margin: 40px 0;
+  font-size: 18px;
+  text-align: center;
+}
+
 .header {
   align-items: center;
-  border: 1px solid black;
+  border-bottom: 1px solid grey;
   display: flex;
   height: 80px;
   padding: 20px;
@@ -18,40 +70,45 @@ body {
   justify-content: space-between;
 }
 
-.header h1 {
-  font-size: 18px;
-}
-
-#sequence-number { 
+#sequence-number {
+  color: #2a8bf2;
   padding-right: 24px;
+  font-weight: normal;
 }
 
 .chat-details {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: space-between;
 }
 
 form {
-  background: #000;
-  padding: 3px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
+  border-top: 1px solid grey;
+  background: #fff;
+  position: absolute;
+  bottom: 5%;
+  left: 320px;
+  width: calc(98% - 360px);
 }
 
 form input {
   border: 0;
-  padding: 10px;
-  width: 90%;
-  margin-right: 0.5%;
+  padding: 20px;
+  width: calc(94% - 120px);
+}
+
+input::placeholder {
+  font-size: 14px;
+  font-style: italic;
 }
 
 form button {
-  width: 9%;
-  background: rgb(130, 224, 255);
+  color: white;
+  background: #2a8bf2;
   border: none;
   padding: 10px;
+  margin: 10px 10px 0 10px;
+  width: 120px;
 }
 
 #messages {
@@ -60,35 +117,49 @@ form button {
   list-style-type: none;
   margin: 0 0 40px 0;
   padding: 20px;
+  height: 80%;
+  overflow: auto;
 }
 
 #messages li {
-  padding: 5px 10px;
+  padding: 12px;
+}
+
+.meta {
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.meta .details {
+  color: grey;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.message {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-}
-
-#messages li:nth-child(odd) {
-  background: #eee;
-}
-
-.meta { 
-  font-size: 12px;
 }
 
 .new-connection,
 .disconnection {
-  font-size: 16px;
+  color: grey;
+  font-size: 14px;
   font-weight: bold;
   text-align: center;
   text-decoration: underline;
+  justify-content: center;
 }
 
-.new-connection#text {
+.new-connection #text {
   text-align: center;
 }
 
 .new-message {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   font-size: 14px;
 }
