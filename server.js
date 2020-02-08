@@ -32,8 +32,8 @@ const sleep = require("./utils.js").sleep;
 /* init variables */
 const defaultTopicId = ConsensusTopicId.fromString("0.0.156824");
 const mirrorNodeAddress = new MirrorClient("api.testnet.kabuto.sh:50211");
-const HederaClient = Client.forTestnet();
 const specialChar = "&";
+var HederaClient = Client.forTestnet();
 var topicId = "";
 var logStatus = "Default";
 
@@ -42,28 +42,12 @@ async function init() {
   inquirer.prompt(questions).then(async function(answers) {
     try {
       logStatus = answers.status;
-      /* configure account */
-      if (answers.account === "" || answers.key === "") {
-        log("init()", "using default .env config", logStatus);
-        HederaClient.setOperator(
-          process.env.ACCOUNT_ID,
-          process.env.PRIVATE_KEY
-        );
-      } else {
-        HederaClient.setOperator(answers.account, answers.key);
-      }
-      /* configure topic */
-      if (answers.topic.includes("create")) {
-        log("init()", "creating new topic", logStatus);
-        topicId = await createNewTopic();
-      } else {
-        log("init()", "using default topic", logStatus);
-        topicId = defaultTopicId;
-      }
+      configureAccount(answers.account, answers.key);
+      await configureTopic(answers.topic);
       /* run & serve the express app */
       runChat();
     } catch (error) {
-      log("ERROR: init()", error, logStatus);
+      log("ERROR: init() failed", error, logStatus);
       process.exit(1);
     }
   });
@@ -73,7 +57,7 @@ function runChat() {
   app.use(express.static("public"));
   http.listen(0, function() {
     const randomInstancePort = http.address().port;
-    open("http://localhost:" + randomInstancePort, { app: "firefox" }); // to do - add fallback browsers
+    open("http://localhost:" + randomInstancePort);
   });
   subscribeToMirror();
   io.on("connection", function(client) {
@@ -90,7 +74,7 @@ function runChat() {
 
 init(); // process arguments & handoff to runChat()
 
-/* helper hedera functions are below */
+/* helper hedera functions */
 /* have feedback, questions, etc.? please feel free to file an issue! */
 function sendHCSMessage(msg) {
   try {
@@ -134,27 +118,60 @@ function subscribeToMirror() {
 
 async function createNewTopic() {
   try {
-    const tx = await new ConsensusTopicCreateTransaction().execute(
+    const txId = await new ConsensusTopicCreateTransaction().execute(
       HederaClient
     );
-    log(
-      "ConsensusTopicCreateTransaction()",
-      `submitted tx ${tx} .. waiting 3 seconds for receipt`,
-      logStatus
-    );
-    await sleep(3000); // need to wait until this has persisted to a mirror
-    const receipt = await tx.getReceipt(HederaClient);
+    log("ConsensusTopicCreateTransaction()", `submitted tx ${txId}`, logStatus);
+    await sleep(3000); // wait until Hedera reaches consensus
+    const receipt = await txId.getReceipt(HederaClient);
     const newTopicId = receipt.getTopicId();
     log(
       "ConsensusTopicCreateTransaction()",
-      `created new topic ${newTopicId} .. waiting 9 seconds for it to get to our Mirror Node`,
+      `success! new topic ${newTopicId}`,
       logStatus
     );
-    await sleep(9000); // need to wait until this has persisted to a mirror
-    log("ConsensusTopicCreateTransaction()", newTopicId.toString(), logStatus);
     return newTopicId;
   } catch (error) {
     log("ERROR: ConsensusTopicCreateTransaction()", error, logStatus);
     process.exit(1);
+  }
+}
+
+/* helper init functions */
+function configureAccount(account, key) {
+  try {
+    // If either values in our init() process were empty
+    // we should try and fallback to the .env configuration
+    if (account === "" || key === "") {
+      log("init()", "using default .env config", logStatus);
+      HederaClient.setOperator(process.env.ACCOUNT_ID, process.env.PRIVATE_KEY);
+    }
+    // Otherwise, let's use the initalization parameters
+    else {
+      HederaClient.setOperator(account, key);
+    }
+  } catch (error) {
+    log("ERROR: configureAccount()", error, logStatus);
+    process.exit(1);
+  }
+}
+
+async function configureTopic(createArg) {
+  // If the value in our init() process asked for a new topic
+  // we should create one, otherwise, return the default value
+  if (createArg.includes("create")) {
+    log("init()", "creating new topic", logStatus);
+    topicId = await createNewTopic();
+    log(
+      "ConsensusTopicCreateTransaction()",
+      `waiting for new HCS Topic & mirror node (it may take a few seconds)`,
+      logStatus
+    );
+    await sleep(9000);
+    return;
+  } else {
+    log("init()", "using default topic", logStatus);
+    topicId = defaultTopicId;
+    return;
   }
 }
